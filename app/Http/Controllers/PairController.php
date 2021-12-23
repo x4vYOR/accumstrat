@@ -10,10 +10,10 @@ use App\Trade;
 use App\Ticker;
 use DB;
 use Binance;
+use Storage;
 class PairController extends Controller
 {
-    public function index()
-    {
+    public function index(){
         $timeframes = Timeframe::all();
         $pairs = Pair::all();
         //dd($rsi);
@@ -202,7 +202,7 @@ class PairController extends Controller
                 $array_vol[] = $value["volume"];
                 $x += 1;
                 //$x>=14? dd($array):"";
-                $ticker->rsi = $x > 14? trader()->rsi($array,14)[$x-1]:0;
+                $ticker->rsi = $x > 14? trader()->rsi(array_slice($array,-14),14)[14]:0;
                 $ticker->ema200 = $x > 200? trader()->ema($array,200)[$x-1]:0;
                 $ticker->avg_volume = $x > 14? trader()->ma($array_vol, 14)[$x-1]:0;
                 if($x > 34){
@@ -221,6 +221,7 @@ class PairController extends Controller
             
             return Response()->json(["success" => true]);
         } catch (\Throwable $th) {
+            dd($th);
             return Response()->json([
                 "success" => false,
                 "message" => $th
@@ -244,5 +245,11 @@ class PairController extends Controller
                 "data" => null,
             ]);
         }
+    }
+    public function save(Request $req){
+        if(true){
+            Storage::append("public/archivo.txt", $req);
+        }
+        return true;
     }
 }

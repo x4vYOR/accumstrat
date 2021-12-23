@@ -21,6 +21,7 @@ Auth::routes([
     'verify' => false, // Email Verification Routes...
   ]);
 
+Route::post('/webhook', 'PairController@save')->name('nuevo.par');
   
 Route::group(['middleware' => 'auth'], function () {
     Route::get('/resultados', 'HomeController@index')->name('resultados');

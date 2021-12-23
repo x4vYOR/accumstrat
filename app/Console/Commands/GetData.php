@@ -65,7 +65,7 @@ class GetData extends Command
                     $ticker->volume = $aux["volume"];
                     $ticker->code = $aux["openTime"];
                     $ticker->open_date = epochToDatetime($aux["openTime"]);
-                    $array_tickers = Ticker::where('pair_id',$pair->id)->select('close','volume')->limit(500)->get();
+                    $array_tickers = Ticker::where('pair_id',$pair->id)->select('close','volume')->get();
                     foreach ($array_tickers as $val) {
                         $array[] = $val->close;
                         $array_vol[] = $val->volume;
