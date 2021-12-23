@@ -202,7 +202,7 @@ class PairController extends Controller
                 $array_vol[] = $value["volume"];
                 $x += 1;
                 //$x>=14? dd($array):"";
-                $ticker->rsi = $x > 14? trader()->rsi(array_slice($array,-14),14)[14]:0;
+                $ticker->rsi = $x > 14? trader()->rsi(array_slice($array,-15),14)[14]:0;
                 $ticker->ema200 = $x > 200? trader()->ema($array,200)[$x-1]:0;
                 $ticker->avg_volume = $x > 14? trader()->ma($array_vol, 14)[$x-1]:0;
                 if($x > 34){
