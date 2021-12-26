@@ -247,12 +247,88 @@ class PairController extends Controller
             ]);
         }
     }
-    public function save(Request $req){
+    public function webhook(Request $req){
         try {
-            $obj = new Webhook;
-            $array = $req->json()->all();
-            $obj->data = json_encode($array);
-            $obj->save();
+            if($clave == env("WEBHOOK_KEY") and $pair = Pair::where('name',$ticker)->first()){
+                $api = new Binance\API(env("API_KEY"),env("SECRET"));
+                $array = $req->json()->all();
+                $clave = $array["key"];
+                $ticker = $array["ticker"];   
+                $close = $array["close"];            
+                $order = $array["order"];
+                $accumulation = Accumulation::where('pair_id', $pair->id)->where('status',1)->first();                
+                if($order == "buy"){                
+                    # revisar si hay un accumulate activo para el par,   
+                    if($accumulation){
+                        # si hay un acc activo, se revisa si se paso el máximo de trades por par, 
+                        $periods = count($accumulation->trades);                    
+                    }else{
+                        $accumulation = new Accumulation;
+                        $periods = 0;
+                        $accumulation->pair_id = $pair->id;
+                        $accumulation->status = 1;
+                        $accumulation->candles = 0;
+                        $accumulation->hold = 0;
+                        $accumulation->save();
+                    }
+                    #falta definir algunos valores de accumulation
+                    $divisor_actual = getDivisor($pair->initial_parts, 1/$pair->max_periods, $periods);
+                    $monto_entrada = $pair->current_capital/$divisor_actual;
+                    if($pair->current_capital > $monto_entrada){
+                        #si hay saldo disponible, compra!! ntp, el indice garantiza q se cumplan los max_periods del par
+                        $cantidad = round($monto_entrada/$close,4);
+                        //dd($cantidad);
+                        $compra = $api->marketBuy($pair->name, $cantidad);
+                        if($compra['status'] == "FILLED"){
+                            #luego de comprar hay q actualizar datos de accumulate, del current capital etc
+                            //$array[] = $compra["fills"][0]["price"];
+                            //$array[] = $compra["fills"][0]["qty"];
+                            $new_trade = new Trade;
+                            $new_trade->accumulation_id = $accumulation->id;
+                            $new_trade->entry_price = $compra["fills"][0]["price"];
+                            $new_trade->quantity = $compra["origQty"];
+                            $new_trade->amount = $compra["cummulativeQuoteQty"];
+                            $new_trade->period = $periods+1;
+                            $new_trade->order_id = $compra['orderId'];
+                            $new_trade->open_date = epochToDatetime($compra['transactTime']);
+                            $new_trade->active = 1;
+                            $new_trade->status = 1;
+                            $new_trade->save();
+                            $accumulation->avg_entry_price = newAverage($accumulation->avg_entry_price, $compra["fills"][0]["price"], $compra["cummulativeQuoteQty"], $accumulation->total_amount);
+                            $accumulation->total_quantity += $new_trade->quantity;
+                            $accumulation->total_amount += $new_trade->amount;
+                            $accumulation->sell_target = $accumulation->avg_entry_price * $pair->rentability;
+                            $pair->current_capital = $pair->current_capital - $compra["cummulativeQuoteQty"];
+                            $pair->distance = 0;
+                            $pair->save();
+                            $accumulation->save();
+                        }                     
+                    }
+                    
+                }            
+                if($order == "sell"){
+                    #si es momento de vender, VENDE TODO
+                    $accumulation = Accumulation::where('pair_id', $pair->id)->where('status',1)->first();
+                    //dd($accumulation);
+                    $trades = Trade::where('accumulation_id',$accumulation->id)->where('active',1)->where('status',1)->get();
+                    $venta = $api->marketSell($pair->name, $accumulation->total_quantity);
+                    if($venta['status'] =="FILLED"){
+                    #luego hay que actualizar el estado de accumulate, cerrar los trades y actualizar los capitales de pair.
+                        foreach ($trades as $trade) {
+                            $trade->active = 0;
+                            $trade->status = 0;
+                            $trade->closed_date = epochToDatetime($venta['transactTime']);
+                            $trade->save();
+                        }
+                        $accumulation->sell_date = epochToDatetime($venta['transactTime']);
+                        $accumulation->status = 0;
+                        $accumulation->save();
+                        $pair->current_capital += ($venta["fills"][0]["price"]* $venta["executedQty"]);
+                        $pair->initial_capital = $pair->current_capital;
+                        $pair->save();
+                    }                
+                }  
+            }  
             return true;
         } catch (\Throwable $th) {
             return false;
