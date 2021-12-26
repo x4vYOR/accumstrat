@@ -247,9 +247,16 @@ class PairController extends Controller
         }
     }
     public function save(Request $req){
-        if(true){
-            Storage::append("public/archivo.txt", $req);
+        try {
+            //$array = [];
+            //$array[] = $req->cantidad;
+            //$array[] = $req->pair;
+            Storage::put("/public/webhook/archivo.txt", $req);
+            return true;
+        } catch (\Throwable $th) {
+            Storage::put("/public/webhook/archivo.txt", $th);
+            return false;
         }
-        return true;
+        
     }
 }
