@@ -8,6 +8,7 @@ use App\Pair;
 use App\Accumulation;
 use App\Trade;
 use App\Ticker;
+use App\Webhook;
 use DB;
 use Binance;
 use Storage;
@@ -248,13 +249,12 @@ class PairController extends Controller
     }
     public function save(Request $req){
         try {
-            //$array = [];
-            //$array[] = $req->cantidad;
-            //$array[] = $req->pair;
-            Storage::put("/public/webhook/archivo.txt", $req);
+            $obj = new Webhook;
+            $array = $req->json()->all();
+            $obj->data = json_encode($array);
+            $obj->save();
             return true;
         } catch (\Throwable $th) {
-            Storage::put("/public/webhook/archivo.txt", $th);
             return false;
         }
         
