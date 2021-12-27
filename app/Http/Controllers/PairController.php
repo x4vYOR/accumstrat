@@ -249,13 +249,13 @@ class PairController extends Controller
     }
     public function webhook(Request $req){
         try {
+            $array = $req->json()->all();
+            $clave = $array["key"];
+            $ticker = $array["ticker"];   
+            $close = $array["close"];            
+            $order = $array["order"];
             if($clave == env("WEBHOOK_KEY") and $pair = Pair::where('name',$ticker)->first()){
-                $api = new Binance\API(env("API_KEY"),env("SECRET"));
-                $array = $req->json()->all();
-                $clave = $array["key"];
-                $ticker = $array["ticker"];   
-                $close = $array["close"];            
-                $order = $array["order"];
+                $api = new Binance\API(env("API_KEY"),env("SECRET"));                
                 $accumulation = Accumulation::where('pair_id', $pair->id)->where('status',1)->first();                
                 if($order == "buy"){                
                     # revisar si hay un accumulate activo para el par,   
