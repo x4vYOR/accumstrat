@@ -331,11 +331,10 @@ class PairController extends Controller
                         $pair->save();
                     }                
                 }  
-            }  
-            
+            }              
             return true;
         } catch (\Throwable $th) {
-            dd($th);
+            Storage::put("/public/webhook/archivo.txt", $th);
             return false;
         }
         
