@@ -204,7 +204,7 @@ class PairController extends Controller
                 $x += 1;
                 //$x>=14? dd($array):"";
                 $ticker->rsi = $x > 14? trader()->rsi(array_slice($array,-15),14)[14]:0;
-                $ticker->ema200 = $x > 200? trader()->ema($array,200)[$x-1]:0;
+                $ticker->ema200 = $x > 50? trader()->ema($array,50)[$x-1]:0;
                 $ticker->avg_volume = $x > 14? trader()->ma($array_vol, 14)[$x-1]:0;
                 if($x > 34){
                     $data_macd =  trader()->macd($array,12,26,9,13);
@@ -218,7 +218,7 @@ class PairController extends Controller
                 }
                 $ticker->save();
             }
-            Ticker::where('pair_id',$id)->orderBy('id','desc')->first()->delete();
+            //Ticker::where('pair_id',$id)->orderBy('id','desc')->first()->delete();
             
             return Response()->json(["success" => true]);
         } catch (\Throwable $th) {
@@ -331,6 +331,7 @@ class PairController extends Controller
             }  
             return true;
         } catch (\Throwable $th) {
+            dd($th);
             return false;
         }
         
