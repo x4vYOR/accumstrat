@@ -254,6 +254,9 @@ class PairController extends Controller
             $ticker = $array["ticker"];   
             $close = $array["close"];            
             $order = $array["order"];
+            $obj = new Webhook;
+            $obj->data = json_encode($array);
+            $obj->save();
             if($clave == env("WEBHOOK_KEY") and $pair = Pair::where('name',$ticker)->first()){
                 $api = new Binance\API(env("API_KEY"),env("SECRET"));                
                 $accumulation = Accumulation::where('pair_id', $pair->id)->where('status',1)->first();                
@@ -329,6 +332,7 @@ class PairController extends Controller
                     }                
                 }  
             }  
+            
             return true;
         } catch (\Throwable $th) {
             dd($th);
