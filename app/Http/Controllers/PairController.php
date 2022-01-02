@@ -186,7 +186,7 @@ class PairController extends Controller
             $data_macd = [];
             $x = 0;
             $api = new Binance\API(env("API_KEY"),env("SECRET"));
-            $data =  $api->candlesticks($pair->name, $pair->timeframe->name);
+            $data =  $api->candlesticks($pair->name, "1h");
             //dd($data[$api->first($data)]);
             foreach ($data as $key => $value) {
                 $ticker = new Ticker;
@@ -252,19 +252,20 @@ class PairController extends Controller
             $array = $req->json()->all();
             $clave = $array["key"];
             $ticker = $array["ticker"];   
-            $close = $array["close"];            
+            $close = $array["close"];     
+            $timeframe = $array["timeframe"];            
             $order = $array["order"];
             $obj = new Webhook;
             $obj->data = json_encode($array);
             $obj->save();
-            if($clave == env("WEBHOOK_KEY") and $pair = Pair::where('name',$ticker)->first()){
-                $api = new Binance\API(env("API_KEY"),env("SECRET"));                
+            if($clave == env("WEBHOOK_KEY") and $pair = Pair::where('name',$ticker)->where('timeframe_id',$timeframe)->first()){
+                $api = new Binance\API(env("API_KEY"),env("SECRET"));
                 $accumulation = Accumulation::where('pair_id', $pair->id)->where('status',1)->first();                
-                if($order == "buy"){                
+                if($order == "buy"){
                     # revisar si hay un accumulate activo para el par,   
                     if($accumulation){
                         # si hay un acc activo, se revisa si se paso el máximo de trades por par, 
-                        $periods = count($accumulation->trades);                    
+                        $periods = count($accumulation->trades);
                     }else{
                         $accumulation = new Accumulation;
                         $periods = 0;
