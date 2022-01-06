@@ -33,6 +33,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/configuracion', 'SettingsController@index')->name('configuracion');
     Route::get('/', 'HomeController@index')->name('home');
     Route::patch('/par/{id}/estado', 'PairController@onPair');
+    Route::get('/infoexchange', 'PairController@get_pair_info')->name('info.exchange');
 });
 
 Auth::routes();

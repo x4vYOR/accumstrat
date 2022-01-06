@@ -7,9 +7,11 @@ use App\Timeframe;
 use App\Pair;
 use App\Accumulation;
 use App\Trade;
+use App\PairInfo;
 use App\Ticker;
 use App\Webhook;
 use DB;
+use Str;
 use Binance;
 use Storage;
 class PairController extends Controller
@@ -279,8 +281,9 @@ class PairController extends Controller
                     $divisor_actual = getDivisor($pair->initial_parts, 1/$pair->max_periods, $periods);
                     $monto_entrada = $pair->current_capital/$divisor_actual;
                     if($pair->current_capital > $monto_entrada){
-                        #si hay saldo disponible, compra!! ntp, el indice garantiza q se cumplan los max_periods del par
-                        $cantidad = round($monto_entrada/$close,4);
+                        #si hay saldo disponible, compra!! ntp, el indice garantiza q se cumplan los max_periods del par                        
+                        $pair_info = PairInfo::where('ticker',$ticker)->first();
+                        $cantidad = round($monto_entrada/$close,$pair_info->n_decimals);
                         //dd($cantidad);
                         $compra = $api->marketBuy($pair->name, $cantidad);
                         if($compra['status'] == "FILLED"){
@@ -333,9 +336,46 @@ class PairController extends Controller
                     }                
                 }  
             }              
+            Storage::put("/public/webhook/archivo.txt", $obj->data);
+            return true;
+        } catch (\Throwable $th) {            
+            Storage::put("/public/webhook/archivo.txt", $th);
+            dd($th);
+            return false;
+        }
+        
+    }
+    public function get_pair_info(){
+        try {
+            $api = new Binance\API(env("API_KEY"),env("SECRET"));
+            //$c = $api->numberOfDecimals($api->exchangeInfo()['symbols'][$symbol]['filters'][2]['minQty']);
+            $pares = $api->exchangeInfo()['symbols'];
+            //$aux = 10000;
+            foreach ($pares as $par) {
+              //  if($aux>0){
+                  $string = $par['symbol'];
+                  if(Str::contains($string, "BTC")){
+                   
+                    $infos = new PairInfo;
+                    $infos->ticker = $par['symbol'];
+                    $infos->min_qty = $par['filters'][2]['minQty'];
+                    $infos->save();
+                  }
+                    
+                   // $aux -=1;
+                //}else{
+                  //  break;
+                //}
+              /*  $infos = PairInfo::all();
+                foreach ($infos as $item) {
+                    $item->n_decimals = $api->numberOfDecimals($item->min_qty);
+                    $item->save();
+                }   */
+            }
+            //dd($pares);
             return true;
         } catch (\Throwable $th) {
-            Storage::put("/public/webhook/archivo.txt", $th);
+            dd($th);
             return false;
         }
         
